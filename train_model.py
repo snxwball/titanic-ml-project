@@ -1,11 +1,5 @@
-# ============================================
-# TITANIC SURVIVAL PREDICTION - TRAINING
-# ============================================
-
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.impute import SimpleImputer
@@ -13,9 +7,10 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.svm import SVC
 from sklearn.naive_bayes import GaussianNB
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, roc_curve, auc
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 import joblib
-import os
+import warnings
+warnings.filterwarnings('ignore')
 
 print("="*60)
 print("TITANIC SURVIVAL PREDICTION - TRAINING")
@@ -28,7 +23,6 @@ try:
     print(f"✓ Loaded: {df.shape[0]} rows, {df.shape[1]} columns")
 except FileNotFoundError:
     print("❌ ไม่พบไฟล์ data/train.csv")
-    print("กรุณาดาวน์โหลดไฟล์จาก: https://www.kaggle.com/c/titanic/data")
     exit()
 
 # 2. Data Preprocessing
@@ -39,16 +33,30 @@ df_processed = df.copy()
 features = ['Pclass', 'Sex', 'Age', 'SibSp', 'Parch', 'Fare', 'Embarked']
 df_processed = df_processed[features + ['Survived']].copy()
 
-# จัดการ Missing Values
+# จัดการ Missing Values - แก้ไขแล้ว
+print("   Handling missing values...")
+
+# Age - เติมด้วยค่าเฉลี่ย
 age_imputer = SimpleImputer(strategy='mean')
 df_processed['Age'] = age_imputer.fit_transform(df_processed[['Age']])
 
-embarked_imputer = SimpleImputer(strategy='most_frequent')
-df_processed['Embarked'] = embarked_imputer.fit_transform(df_processed[['Embarked']])
+# Embarked - เติมด้วยค่าที่พบบ่อยที่สุด
+# ตรวจสอบว่ามี missing values หรือไม่
+if df_processed['Embarked'].isnull().sum() > 0:
+    print(f"   Found {df_processed['Embarked'].isnull().sum()} missing values in Embarked")
+    # แปลงเป็น string ก่อน
+    df_processed['Embarked'] = df_processed['Embarked'].astype(str)
+    embarked_imputer = SimpleImputer(strategy='most_frequent')
+    df_processed['Embarked'] = embarked_imputer.fit_transform(df_processed[['Embarked']])
+else:
+    print("   No missing values in Embarked")
+    embarked_imputer = SimpleImputer(strategy='most_frequent')
+    embarked_imputer.fit(df_processed[['Embarked']])
 
 # Encoding
+print("   Encoding categorical variables...")
 df_processed['Sex'] = df_processed['Sex'].map({'male': 0, 'female': 1})
-df_processed = pd.get_dummies(df_processed, columns=['Embarked'], prefix='Embarked')
+df_processed = pd.get_dummies(df_processed, columns=['Embarked'], prefix='Embarked', drop_first=False)
 
 # แยก X, y
 X = df_processed.drop('Survived', axis=1)
@@ -80,12 +88,11 @@ for name, model in models.items():
     print(f"\n🔹 {name}:")
     model.fit(X_train_scaled, y_train)
     y_pred = model.predict(X_test_scaled)
-    y_pred_proba = model.predict_proba(X_test_scaled)[:, 1] if hasattr(model, 'predict_proba') else None
     
     accuracy = accuracy_score(y_test, y_pred)
-    precision = precision_score(y_test, y_pred)
-    recall = recall_score(y_test, y_pred)
-    f1 = f1_score(y_test, y_pred)
+    precision = precision_score(y_test, y_pred, zero_division=0)
+    recall = recall_score(y_test, y_pred, zero_division=0)
+    f1 = f1_score(y_test, y_pred, zero_division=0)
     
     print(f"   Accuracy:  {accuracy:.4f}")
     print(f"   Precision: {precision:.4f}")
@@ -98,9 +105,7 @@ for name, model in models.items():
         'Precision': precision,
         'Recall': recall,
         'F1-Score': f1,
-        'Model_Object': model,
-        'Predictions': y_pred,
-        'Probabilities': y_pred_proba
+        'Model_Object': model
     })
 
 results_df = pd.DataFrame(results)
@@ -125,4 +130,4 @@ joblib.dump({
 }, 'preprocessors.pkl')
 
 print("\n✓ Saved: best_model.pkl, scaler.pkl, preprocessors.pkl")
-print("\n🎉 Training complete!")
+print("\n Training complete!")
