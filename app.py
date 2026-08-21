@@ -13,6 +13,100 @@ st.set_page_config(
     layout="wide"
 )
 
+import streamlit as st
+import pandas as pd
+import numpy as np
+import joblib
+import os
+from sklearn.preprocessing import StandardScaler
+from sklearn.impute import SimpleImputer
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+import urllib.request
+
+# ============================================
+# AUTO-TRAIN IF MODELS NOT FOUND
+# ============================================
+@st.cache_resource
+def load_or_train_model():
+    """โหลดโมเดลหรือ train ใหม่ถ้าไม่มี"""
+    
+    # ตรวจสอบว่ามีไฟล์โมเดลหรือไม่
+    if not os.path.exists('best_model.pkl'):
+        st.info("🔄 ไม่พบโมเดล กำลังดาวน์โหลด dataset และ train...")
+        
+        # ดาวน์โหลด dataset
+        if not os.path.exists('data'):
+            os.makedirs('data')
+        
+        try:
+            url = 'https://raw.githubusercontent.com/datasciencedojo/datasets/master/titanic.csv'
+            urllib.request.urlretrieve(url, 'data/train.csv')
+        except:
+            st.error("❌ ไม่สามารถดาวน์โหลด dataset ได้")
+            return None, None, None
+        
+        # โหลดข้อมูล
+        df = pd.read_csv('data/train.csv')
+        
+        # Preprocessing
+        df_processed = df.copy()
+        features = ['Pclass', 'Sex', 'Age', 'SibSp', 'Parch', 'Fare', 'Embarked']
+        df_processed = df_processed[features + ['Survived']].copy()
+        
+        # Missing values
+        age_imputer = SimpleImputer(strategy='mean')
+        df_processed['Age'] = age_imputer.fit_transform(df_processed[['Age']])
+        
+        embarked_imputer = SimpleImputer(strategy='most_frequent')
+        df_processed['Embarked'] = embarked_imputer.fit_transform(df_processed[['Embarked']])
+        
+        # Encoding
+        df_processed['Sex'] = df_processed['Sex'].map({'male': 0, 'female': 1})
+        df_processed = pd.get_dummies(df_processed, columns=['Embarked'], prefix='Embarked')
+        
+        X = df_processed.drop('Survived', axis=1)
+        y = df_processed['Survived']
+        
+        # Split & Scale
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        scaler = StandardScaler()
+        X_train_scaled = scaler.fit_transform(X_train)
+        
+        # Train Model
+        model = RandomForestClassifier(n_estimators=100, random_state=42)
+        model.fit(X_train_scaled, y_train)
+        
+        # Save models
+        joblib.dump(model, 'best_model.pkl')
+        joblib.dump(scaler, 'scaler.pkl')
+        joblib.dump({
+            'age_imputer': age_imputer,
+            'embarked_imputer': embarked_imputer,
+            'feature_names': list(X.columns)
+        }, 'preprocessors.pkl')
+        
+        st.success("✅ Train โมเดลเสร็จสมบูรณ์!")
+        
+        return model, scaler, {'age_imputer': age_imputer, 'embarked_imputer': embarked_imputer}
+    
+    else:
+        # โหลดโมเดลที่มี
+        try:
+            model = joblib.load('best_model.pkl')
+            scaler = joblib.load('scaler.pkl')
+            preprocessors = joblib.load('preprocessors.pkl')
+            return model, scaler, preprocessors
+        except:
+            st.error("❌ โหลดโมเดลไม่สำเร็จ กรุณาลบไฟล์ .pkl แล้ว refresh ใหม่")
+            return None, None, None
+
+# เรียกใช้ฟังก์ชัน
+model, scaler, preprocessors = load_or_train_model()
+
+if model is None:
+    st.stop()
+
 # Custom CSS
 st.markdown("""
 <style>
