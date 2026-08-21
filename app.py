@@ -299,16 +299,16 @@ with tab1:
 # TAB 2: ข้อมูล Dataset
 # ============================================
 with tab2:
-    st.header("📊 ข้อมูล Dataset Titanic")
+    st.header("📊 Titanic Dataset Information")
     
     try:
         # Load dataset
         df = pd.read_csv('data/train.csv')
         
-        st.subheader("ข้อมูล 5 แถวแรก:")
+        st.subheader("First 5 rows:")
         st.dataframe(df.head())
         
-        st.subheader("สถิติเบื้องต้น:")
+        st.subheader("Statistics:")
         st.dataframe(df.describe())
         
         st.subheader("Missing Values:")
@@ -320,37 +320,37 @@ with tab2:
         st.dataframe(missing_df[missing_df['Missing Values'] > 0])
         
         # Visualizations
-        st.subheader("📈 การกระจายของข้อมูล")
+        st.subheader("📈 Data Distribution")
         
         col1, col2 = st.columns(2)
         
         with col1:
             fig, ax = plt.subplots(figsize=(6, 6))
             df['Survived'].value_counts().plot(kind='pie', ax=ax, 
-                                               labels=['ไม่รอด', 'รอด'], 
+                                               labels=['Not Survived', 'Survived'], 
                                                autopct='%1.1f%%',
                                                colors=['#ff6b6b', '#4ecdc4'])
-            ax.set_title('อัตราการรอดชีวิต')
+            ax.set_title('Survival Rate')
             st.pyplot(fig)
             plt.close(fig)
         
         with col2:
             fig, ax = plt.subplots(figsize=(6, 4))
             sns.countplot(x='Sex', hue='Survived', data=df, ax=ax)
-            ax.set_title('เพศ vs การรอดชีวิต')
+            ax.set_title('Sex vs Survival')
             st.pyplot(fig)
             plt.close(fig)
         
         fig, ax = plt.subplots(figsize=(8, 4))
         sns.boxplot(x='Pclass', y='Age', hue='Survived', data=df, ax=ax)
-        ax.set_title('ชั้นตั๋วและอายุ vs การรอดชีวิต')
+        ax.set_title('Pclass & Age vs Survival')
         st.pyplot(fig)
         plt.close(fig)
         
     except FileNotFoundError:
-        st.error(" ไม่พบไฟล์ data/train.csv")
+        st.error("❌ File data/train.csv not found")
     except Exception as e:
-        st.error(f"❌ เกิดข้อผิดพลาด: {str(e)}")
+        st.error(f"❌ Error: {str(e)}")
 
 # ============================================
 # TAB 3: ผลการเปรียบเทียบ Model
