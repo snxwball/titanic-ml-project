@@ -426,7 +426,7 @@ with tab4:
         
         **🏫 สถาบัน:** [ชื่อสถาบันของคุณ]
         
-        ** Email:** [email@example.com]
+        ** Email:** [savespark2547@gmail.com]
         """)
     
     st.markdown("---")
