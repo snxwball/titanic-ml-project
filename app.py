@@ -2,9 +2,24 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
-import matplotlib.pyplot as plt
-import seaborn as sns
+import os
 from sklearn.preprocessing import StandardScaler
+from sklearn.impute import SimpleImputer
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+import urllib.request
+from PIL import Image
+import io
+
+# ============================================
+# ข้อมูลผู้พัฒนา (แก้ไขตรงนี้)
+# ============================================
+DEVELOPER_INFO = {
+    'name': 'นายธนวัฒน์ เนียมรุ่งเรือง ',  # แก้เป็นชื่อคุณ
+    'student_id': '664245015',    # แก้เป็นรหัสนักศึกษาคุณ
+    'group': '66/43',                     # แก้เป็นหมู่เรียนคุณ
+    'photo_path': 'IMG_20231105_165242_400.jpg'  # วางรูปของคุณในโฟลเดอร์ แล้วแก้ชื่อไฟล์
+}
 
 # ตั้งค่าหน้าเว็บ
 st.set_page_config(
