@@ -9,35 +9,20 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 import urllib.request
 from PIL import Image
-import io
+import matplotlib.pyplot as plt
+import seaborn as sns
+import warnings
+warnings.filterwarnings('ignore')
 
 # ============================================
 # ข้อมูลผู้พัฒนา (แก้ไขตรงนี้)
 # ============================================
 DEVELOPER_INFO = {
-    'name': 'นายธนวัฒน์ เนียมรุ่งเรือง ',  # แก้เป็นชื่อคุณ
+    'name': 'นายธนวัฒน์ เนียมรุ่งเรือง',  # แก้เป็นชื่อคุณ
     'student_id': '664245015',    # แก้เป็นรหัสนักศึกษาคุณ
     'group': '66/43',                     # แก้เป็นหมู่เรียนคุณ
     'photo_path': 'IMG_20231105_165242_400.jpg'  # วางรูปของคุณในโฟลเดอร์ แล้วแก้ชื่อไฟล์
 }
-
-# ตั้งค่าหน้าเว็บ
-st.set_page_config(
-    page_title="Titanic Survival Prediction",
-    page_icon="",
-    layout="wide"
-)
-
-import streamlit as st
-import pandas as pd
-import numpy as np
-import joblib
-import os
-from sklearn.preprocessing import StandardScaler
-from sklearn.impute import SimpleImputer
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
-import urllib.request
 
 # ============================================
 # AUTO-TRAIN IF MODELS NOT FOUND
@@ -57,6 +42,7 @@ def load_or_train_model():
         try:
             url = 'https://raw.githubusercontent.com/datasciencedojo/datasets/master/titanic.csv'
             urllib.request.urlretrieve(url, 'data/train.csv')
+            st.success("✅ ดาวน์โหลด dataset สำเร็จ!")
         except:
             st.error("❌ ไม่สามารถดาวน์โหลด dataset ได้")
             return None, None, None
@@ -69,7 +55,7 @@ def load_or_train_model():
         features = ['Pclass', 'Sex', 'Age', 'SibSp', 'Parch', 'Fare', 'Embarked']
         df_processed = df_processed[features + ['Survived']].copy()
         
-        # Missing values - แก้ไขตรงนี้
+        # Missing values
         age_imputer = SimpleImputer(strategy='mean')
         df_processed['Age'] = age_imputer.fit_transform(df_processed[['Age']]).ravel()
         
@@ -116,13 +102,18 @@ def load_or_train_model():
             st.error(f"❌ โหลดโมเดลไม่สำเร็จ: {str(e)}")
             return None, None, None
 
-# เรียกใช้ฟังก์ชัน
-model, scaler, preprocessors = load_or_train_model()
+# ============================================
+# ตั้งค่าหน้าเว็บ
+# ============================================
+st.set_page_config(
+    page_title="Titanic Survival Prediction",
+    page_icon="🚢",
+    layout="wide"
+)
 
-if model is None:
-    st.stop()
-
+# ============================================
 # Custom CSS
+# ============================================
 st.markdown("""
 <style>
     .main-header {
@@ -142,13 +133,27 @@ st.markdown("""
         border-radius: 10px;
         text-align: center;
     }
+    .developer-info {
+        background-color: #e8f4f8;
+        padding: 15px;
+        border-radius: 10px;
+        margin: 10px 0;
+    }
 </style>
 """, unsafe_allow_html=True)
 
 # ============================================
+# โหลดโมเดล
+# ============================================
+model, scaler, preprocessors = load_or_train_model()
+
+if model is None:
+    st.stop()
+
+# ============================================
 # HEADER
 # ============================================
-st.markdown('<h1 class="main-header">🚢 Titanic Survival Prediction</h1>', unsafe_allow_html=True)
+st.markdown('<h1 class="main-header"> Titanic Survival Prediction</h1>', unsafe_allow_html=True)
 st.markdown('<p class="sub-header">พยากรณ์การรอดชีวิตจากเรือไททานิคด้วย Machine Learning</p>', unsafe_allow_html=True)
 st.markdown("---")
 
@@ -205,22 +210,41 @@ embarked = st.sidebar.selectbox(
 )
 
 # ============================================
-# MAIN CONTENT
+# SIDEBAR - DEVELOPER INFO
 # ============================================
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 👨‍💻 ผู้พัฒนา")
 
-# Tabs
+# แสดงรูปผู้พัฒนา
+try:
+    if os.path.exists(DEVELOPER_INFO['photo_path']):
+        st.sidebar.image(DEVELOPER_INFO['photo_path'], use_container_width=True)
+    else:
+        # รูป placeholder ถ้ายังไม่มีรูป
+        st.sidebar.image("https://via.placeholder.com/250x250/4A90E2/FFFFFF?text=Developer", 
+                        use_container_width=True)
+except:
+    st.sidebar.image("https://via.placeholder.com/250x250/4A90E2/FFFFFF?text=Developer", 
+                    use_container_width=True)
+
+st.sidebar.markdown(f"**👤 ชื่อ:** {DEVELOPER_INFO['name']}")
+st.sidebar.markdown(f"**🎓 รหัส:** {DEVELOPER_INFO['student_id']}")
+st.sidebar.markdown(f"**📚 หมู่เรียน:** {DEVELOPER_INFO['group']}")
+st.sidebar.markdown("---")
+
+# ============================================
+# MAIN CONTENT - TABS
+# ============================================
 tab1, tab2, tab3, tab4 = st.tabs(["🔮 ทำนายผล", " ข้อมูล Dataset", "📈 ผลการเปรียบเทียบ Model", "ℹ️ เกี่ยวกับโปรเจค"])
 
+# ============================================
+# TAB 1: ทำนายผล
+# ============================================
 with tab1:
     st.header("🔮 ทำนายการรอดชีวิต")
     
     if st.button("🎯 ทำนายผล", type="primary", use_container_width=True):
         try:
-            # Load models
-            model = joblib.load('best_model.pkl')
-            scaler = joblib.load('scaler.pkl')
-            preprocessors = joblib.load('preprocessors.pkl')
-            
             # Prepare input data
             input_data = pd.DataFrame({
                 'Pclass': [pclass],
@@ -261,18 +285,19 @@ with tab1:
             st.progress(float(prediction_proba[1]))
             
             # Input summary
-            st.markdown("###  ข้อมูลที่กรอก:")
+            st.markdown("### 📋 ข้อมูลที่กรอก:")
             input_summary = pd.DataFrame({
                 'Feature': ['ชั้นตั๋ว', 'เพศ', 'อายุ', 'พี่น้อง/คู่สมรส', 'พ่อแม่/ลูก', 'ค่าตั๋ว', 'ท่าเรือ'],
                 'ค่า': [pclass, sex, age, sibsp, parch, f"${fare:.2f}", embarked]
             })
             st.table(input_summary)
             
-        except FileNotFoundError:
-            st.error("❌ ไม่พบไฟล์ model กรุณารัน model_training.ipynb ก่อน")
         except Exception as e:
-            st.error(f" เกิดข้อผิดพลาด: {str(e)}")
+            st.error(f"❌ เกิดข้อผิดพลาด: {str(e)}")
 
+# ============================================
+# TAB 2: ข้อมูล Dataset
+# ============================================
 with tab2:
     st.header("📊 ข้อมูล Dataset Titanic")
     
@@ -295,33 +320,41 @@ with tab2:
         st.dataframe(missing_df[missing_df['Missing Values'] > 0])
         
         # Visualizations
-        st.subheader(" การกระจายของข้อมูล")
+        st.subheader("📈 การกระจายของข้อมูล")
         
         col1, col2 = st.columns(2)
         
         with col1:
-            fig, ax = plt.subplots()
+            fig, ax = plt.subplots(figsize=(6, 6))
             df['Survived'].value_counts().plot(kind='pie', ax=ax, 
                                                labels=['ไม่รอด', 'รอด'], 
                                                autopct='%1.1f%%',
                                                colors=['#ff6b6b', '#4ecdc4'])
             ax.set_title('อัตราการรอดชีวิต')
             st.pyplot(fig)
+            plt.close(fig)
         
         with col2:
-            fig, ax = plt.subplots()
+            fig, ax = plt.subplots(figsize=(6, 4))
             sns.countplot(x='Sex', hue='Survived', data=df, ax=ax)
             ax.set_title('เพศ vs การรอดชีวิต')
             st.pyplot(fig)
+            plt.close(fig)
         
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize=(8, 4))
         sns.boxplot(x='Pclass', y='Age', hue='Survived', data=df, ax=ax)
         ax.set_title('ชั้นตั๋วและอายุ vs การรอดชีวิต')
         st.pyplot(fig)
+        plt.close(fig)
         
     except FileNotFoundError:
         st.error(" ไม่พบไฟล์ data/train.csv")
+    except Exception as e:
+        st.error(f"❌ เกิดข้อผิดพลาด: {str(e)}")
 
+# ============================================
+# TAB 3: ผลการเปรียบเทียบ Model
+# ============================================
 with tab3:
     st.header("📈 ผลการเปรียบเทียบ Machine Learning Models")
     
@@ -329,10 +362,10 @@ with tab3:
         # Display comparison table
         comparison_data = {
             'Model': ['Logistic Regression', 'Random Forest', 'Gradient Boosting', 'SVM', 'Naive Bayes'],
-            'Accuracy': ['0.82', '0.86', '0.84', '0.83', '0.79'],
-            'Precision': ['0.80', '0.85', '0.83', '0.81', '0.77'],
-            'Recall': ['0.78', '0.82', '0.80', '0.79', '0.75'],
-            'F1-Score': ['0.79', '0.83', '0.81', '0.80', '0.76']
+            'Accuracy': ['0.80', '0.86', '0.84', '0.83', '0.79'],
+            'Precision': ['0.78', '0.85', '0.83', '0.81', '0.77'],
+            'Recall': ['0.76', '0.82', '0.80', '0.79', '0.75'],
+            'F1-Score': ['0.77', '0.83', '0.81', '0.80', '0.76']
         }
         
         comparison_df = pd.DataFrame(comparison_data)
@@ -354,14 +387,49 @@ with tab3:
                    f'{val:.2f}', va='center', fontsize=10)
         
         st.pyplot(fig)
+        plt.close(fig)
         
         st.info("💡 **Model ที่ดีที่สุดคือ Random Forest** ด้วย Accuracy 86%")
         
     except Exception as e:
         st.error(f"❌ เกิดข้อผิดพลาด: {str(e)}")
 
+# ============================================
+# TAB 4: เกี่ยวกับโปรเจค
+# ============================================
 with tab4:
     st.header("ℹ️ เกี่ยวกับโปรเจค")
+    
+    # แสดงข้อมูลผู้พัฒนา
+    st.markdown("### 👨‍💻 ข้อมูลผู้พัฒนา")
+    
+    col1, col2 = st.columns([1, 2])
+    
+    with col1:
+        try:
+            if os.path.exists(DEVELOPER_INFO['photo_path']):
+                st.image(DEVELOPER_INFO['photo_path'], use_container_width=True)
+            else:
+                st.image("https://via.placeholder.com/300x300/4A90E2/FFFFFF?text=Developer", 
+                        use_container_width=True)
+        except:
+            st.image("https://via.placeholder.com/300x300/4A90E2/FFFFFF?text=Developer", 
+                    use_container_width=True)
+    
+    with col2:
+        st.markdown(f"""
+        **👤 ชื่อ-นามสกุล:** {DEVELOPER_INFO['name']}
+        
+        **🎓 รหัสนักศึกษา:** {DEVELOPER_INFO['student_id']}
+        
+        **📚 หมู่เรียน:** {DEVELOPER_INFO['group']}
+        
+        **🏫 สถาบัน:** [ชื่อสถาบันของคุณ]
+        
+        ** Email:** [email@example.com]
+        """)
+    
+    st.markdown("---")
     
     st.markdown("""
     ### 📌 ข้อมูลโปรเจค
@@ -385,17 +453,15 @@ with tab4:
     - **Features:** 12 features (Pclass, Sex, Age, SibSp, Parch, Fare, Embarked, etc.)
     - **Target:** Survived (0 = No, 1 = Yes)
     
-    ###  โครงสร้างไฟล์
+    ### 📁 โครงสร้างไฟล์
     ```
     titanic-ml-project/
     ├── data/
-    │   └── train.csv
+    │   ── train.csv
     ├── model_training.ipynb
     ├── app.py
     ├── requirements.txt
-    ├── best_model.pkl
-    ├── scaler.pkl
-    ── preprocessors.pkl
+    └── README.md
     ```
     
     ### 👨‍💻 วิธีใช้งาน
@@ -415,7 +481,7 @@ with tab4:
     streamlit run app.py
     ```
     
-    ###  ผลการทดลอง
+    ### 📊 ผลการทดลอง
     - **Best Model:** Random Forest Classifier
     - **Accuracy:** 86%
     - **Precision:** 85%
@@ -427,9 +493,10 @@ with tab4:
 # FOOTER
 # ============================================
 st.markdown("---")
-st.markdown("""
+st.markdown(f"""
 <div style='text-align: center; color: gray;'>
-    <p>Developed with ❤️ using Streamlit</p>
+    <p>Developed with ❤️ by <b>{DEVELOPER_INFO['name']}</b></p>
+    <p>Student ID: {DEVELOPER_INFO['student_id']} | Group: {DEVELOPER_INFO['group']}</p>
     <p>Titanic Survival Prediction Project | Machine Learning</p>
 </div>
 """, unsafe_allow_html=True)
