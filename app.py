@@ -54,12 +54,12 @@ def load_or_train_model():
         features = ['Pclass', 'Sex', 'Age', 'SibSp', 'Parch', 'Fare', 'Embarked']
         df_processed = df_processed[features + ['Survived']].copy()
         
-        # Missing values
+        # Missing values - แก้ไขตรงนี้
         age_imputer = SimpleImputer(strategy='mean')
-        df_processed['Age'] = age_imputer.fit_transform(df_processed[['Age']])
+        df_processed['Age'] = age_imputer.fit_transform(df_processed[['Age']]).ravel()
         
         embarked_imputer = SimpleImputer(strategy='most_frequent')
-        df_processed['Embarked'] = embarked_imputer.fit_transform(df_processed[['Embarked']])
+        df_processed['Embarked'] = embarked_imputer.fit_transform(df_processed[['Embarked']]).ravel()
         
         # Encoding
         df_processed['Sex'] = df_processed['Sex'].map({'male': 0, 'female': 1})
@@ -97,8 +97,8 @@ def load_or_train_model():
             scaler = joblib.load('scaler.pkl')
             preprocessors = joblib.load('preprocessors.pkl')
             return model, scaler, preprocessors
-        except:
-            st.error("❌ โหลดโมเดลไม่สำเร็จ กรุณาลบไฟล์ .pkl แล้ว refresh ใหม่")
+        except Exception as e:
+            st.error(f"❌ โหลดโมเดลไม่สำเร็จ: {str(e)}")
             return None, None, None
 
 # เรียกใช้ฟังก์ชัน
